@@ -1,0 +1,4 @@
+package: github.com/elastos/Elastos.ELA.SPV_node
+import:
+- package: github.com/elastos/Elastos.ELA.SPV
+  version: sdk_upgrade
