@@ -32,8 +32,8 @@ func main() {
 		}
 	}()
 
-	node.Instance.Start()
 	go rpc.StartServer()
+	node.Instance.Start()
 
 	<-stop
 }

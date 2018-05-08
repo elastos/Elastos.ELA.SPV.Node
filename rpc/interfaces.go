@@ -15,12 +15,21 @@ import (
 )
 
 func RegisterAddresses(params Params) (Result, error) {
-	addresses, ok := params["addresses"].([]string)
+	addresses, ok := params["addresses"].([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("[RegisterAddresses] parameter addresses not exist")
 	}
+	addrs := make([]string, 0, len(addresses))
+	for _, address := range addresses {
+		switch addr := address.(type) {
+		case string:
+			addrs = append(addrs, addr)
+		default:
+			return nil, fmt.Errorf("[RegisterAddresses] address not in string format")
+		}
+	}
 
-	err := node.Instance.RegisterAddresses(addresses)
+	err := node.Instance.RegisterAddresses(addrs)
 	if err != nil {
 		return nil, fmt.Errorf("[RegisterAddresses] register addresses failed %s", err.Error())
 	}

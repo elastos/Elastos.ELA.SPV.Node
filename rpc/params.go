@@ -1,15 +1,17 @@
 package rpc
 
 import (
+	"math"
 	"strconv"
 )
 
 type Params map[string]interface{}
 
-func FromArray(array []interface{}, fileds ...string) Params {
+func FromArray(array []interface{}, fields ...string) Params {
 	params := make(Params)
-	for i := 0; i < len(array); i++ {
-		params[fileds[i]] = array[i]
+	count := int(math.Min(float64(len(array)), float64(len(fields))))
+	for i := 0; i < count; i++ {
+		params[fields[i]] = array[i]
 	}
 	return params
 }

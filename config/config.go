@@ -2,9 +2,9 @@ package config
 
 import (
 	"bytes"
-	"io/ioutil"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 )
 
 const (

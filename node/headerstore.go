@@ -1,6 +1,7 @@
 package node
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"github.com/elastos/Elastos.ELA.SPV/store"
 	"github.com/elastos/Elastos.ELA.Utility/common"
 
-	"encoding/binary"
 	"github.com/boltdb/bolt"
 	"github.com/cevaris/ordered_map"
 )

@@ -27,6 +27,7 @@ func initMethods() {
 }
 
 func StartServer() {
+	log.Debug("Start RPC server at port:", config.Values().RPCPort)
 	initMethods()
 	http.HandleFunc("/", Handle)
 	err := http.ListenAndServe(":"+strconv.Itoa(config.Values().RPCPort), nil)
@@ -89,6 +90,8 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Debug("RPC params:", params)
+
 	result, err := method(params)
 	if err != nil {
 		response.WriteError(w, http.StatusInternalServerError, InternalError, "internal error: "+err.Error())
@@ -116,8 +119,8 @@ func (r *Response) Write(w http.ResponseWriter) {
 
 func formatParams(method string, params []interface{}) Params {
 	switch method {
-	case "registerdata":
-		return FromArray(params, "addresses", "outpoints")
+	case "registeraddresses":
+		return FromArray(params, "addresses")
 	case "registernewaddress":
 		return FromArray(params, "address")
 	case "getblockhash":

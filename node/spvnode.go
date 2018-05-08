@@ -19,6 +19,7 @@ type SPVNode struct {
 	sdk.SPVService
 	*HeaderStore
 	*DataStore
+	waitChan chan byte
 }
 
 func Init(seeds []string) error {
@@ -71,7 +72,19 @@ func (n *SPVNode) OnRollback(height uint32) error {
 	return n.DataStore.Rollback(height)
 }
 
+func (n *SPVNode) Start() {
+	if len(n.DataStore.GetAddrs()) == 0 {
+		log.Debug("Addresses not registered, wait for register.")
+		n.waitChan = make(chan byte)
+		<-n.waitChan
+	}
+	n.SPVService.Start()
+}
+
 func (n *SPVNode) Stop() {
+	if n.waitChan != nil {
+		close(n.waitChan)
+	}
 	n.DataStore.Close()
 	n.SPVService.Stop()
 }
@@ -83,7 +96,7 @@ func (n *SPVNode) RegisterAddresses(addresses []string) error {
 			return err
 		}
 	}
-	n.SPVService.ReloadFilter()
+	n.waitChan <- 1
 	return nil
 }
 
