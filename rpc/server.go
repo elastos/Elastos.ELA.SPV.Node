@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/elastos/Elastos.ELA.SPV_node/config"
+	"github.com/elastos/Elastos.ELA.SPV.Node/config"
 
 	"github.com/elastos/Elastos.ELA.SPV/log"
 )

@@ -39,6 +39,10 @@ func NewHeaderStore() (*HeaderStore, error) {
 		if err != nil {
 			return err
 		}
+		_, err = btx.CreateBucketIfNotExists(BKTHeightHash)
+		if err != nil {
+			return err
+		}
 		_, err = btx.CreateBucketIfNotExists(BKTChainTip)
 		if err != nil {
 			return err

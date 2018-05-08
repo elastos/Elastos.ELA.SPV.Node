@@ -6,9 +6,9 @@ import (
 
 	"github.com/elastos/Elastos.ELA.SPV/log"
 
-	"github.com/elastos/Elastos.ELA.SPV_node/config"
-	"github.com/elastos/Elastos.ELA.SPV_node/node"
-	"github.com/elastos/Elastos.ELA.SPV_node/rpc"
+	"github.com/elastos/Elastos.ELA.SPV.Node/config"
+	"github.com/elastos/Elastos.ELA.SPV.Node/node"
+	"github.com/elastos/Elastos.ELA.SPV.Node/rpc"
 )
 
 func main() {
