@@ -103,6 +103,8 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (r *Response) WriteError(w http.ResponseWriter, httpStatus, code int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Add("Content-Type", "charset=utf-8")
 	w.WriteHeader(httpStatus)
 	r.Error = new(Error)
 	r.Error.Code = code
