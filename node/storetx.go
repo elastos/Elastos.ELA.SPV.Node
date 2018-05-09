@@ -27,7 +27,7 @@ func (t *StoreTx) Serialize(buf io.Writer) error {
 }
 
 func (t *StoreTx) Deserialize(reader io.Reader) error {
-	if err := binary.Read(reader, binary.LittleEndian, t.Height); err != nil {
+	if err := binary.Read(reader, binary.LittleEndian, &t.Height); err != nil {
 		return err
 	}
 	return t.Transaction.Deserialize(reader)

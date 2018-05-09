@@ -148,16 +148,38 @@ func GetRawTransaction(params Params) (Result, error) {
 			headerHash.String(), err.Error())
 	}
 
-	decoded, ok := params.Bool("decoded")
-	if decoded {
-		return getTransactionInfo(&header.Header, &tx.Transaction), nil
-	} else {
-		buf := new(bytes.Buffer)
-		if err := tx.Serialize(buf); err != nil {
-			return nil, err
+	format, ok := params.String("format")
+	if ok {
+		switch format {
+		case "btc":
+			buf := new(bytes.Buffer)
+			if err := elaTxToBtcTx(&tx.Transaction).Serialize(buf); err != nil {
+				return nil, err
+			}
+			return common.BytesToHexString(buf.Bytes()), nil
+		case "ela":
+			buf := new(bytes.Buffer)
+			if err := tx.Serialize(buf); err != nil {
+				return nil, err
+			}
+			return common.BytesToHexString(buf.Bytes()), nil
+		case "json":
+			return getTransactionInfo(&header.Header, &tx.Transaction), nil
+		default:
+			return nil, fmt.Errorf("[GetRawTransaction] unspported format %s", format)
 		}
-		return common.BytesToHexString(buf.Bytes()), nil
 	}
+
+	decoded, ok := params.Bool("format")
+	if ok && decoded {
+		return getTransactionInfo(&header.Header, &tx.Transaction), nil
+	}
+
+	buf := new(bytes.Buffer)
+	if err := elaTxToBtcTx(&tx.Transaction).Serialize(buf); err != nil {
+		return nil, err
+	}
+	return common.BytesToHexString(buf.Bytes()), nil
 }
 
 func SendRawTransaction(params Params) (Result, error) {
@@ -187,7 +209,7 @@ func SendRawTransaction(params Params) (Result, error) {
 				"[SendRawTransaction] convert btc transaction to ela transaction failed %s", err.Error())
 		}
 		node.Instance.SendTransaction(*tx)
-		return tx.Hash(), nil
+		return tx.Hash().String(), nil
 	case "ela":
 		var tx core.Transaction
 		err = tx.Deserialize(bytes.NewReader(txBytes))
@@ -195,7 +217,7 @@ func SendRawTransaction(params Params) (Result, error) {
 			return nil, fmt.Errorf("[SendRawTransaction] transaction deserialize failed %s", err.Error())
 		}
 		node.Instance.SendTransaction(tx)
-		return tx.Hash(), nil
+		return tx.Hash().String(), nil
 	}
 	return nil, fmt.Errorf("[SendRawTransaction] unknown transaction format %s", format)
 }
@@ -242,7 +264,10 @@ func getBlockInfo(header core.Header, verbose bool) (*BlockInfo, error) {
 	var chainWork [4]byte
 	binary.BigEndian.PutUint32(chainWork[:], node.Instance.BestHeight()-header.Height)
 
-	nextBlockHash, _ := node.Instance.GetHeaderHash(header.Height + 1)
+	nextBlockHash, err := node.Instance.GetHeaderHash(header.Height + 1)
+	if err != nil {
+		nextBlockHash = new(common.Uint256)
+	}
 
 	auxPow := new(bytes.Buffer)
 	header.AuxPow.Serialize(auxPow)
@@ -303,15 +328,6 @@ func getTransactionInfo(header *core.Header, tx *core.Transaction) *TransactionI
 	var txHash = tx.Hash()
 	var txHashStr = txHash.String()
 	var size = uint32(tx.GetSize())
-	var blockHash common.Uint256
-	var confirmations uint32
-	var time uint32
-	var blockTime uint32
-	if header != nil {
-		confirmations = node.Instance.BestHeight() - header.Height + 1
-		time = header.Timestamp
-		blockTime = header.Timestamp
-	}
 
 	return &TransactionInfo{
 		TxId:           txHashStr,
@@ -322,16 +338,41 @@ func getTransactionInfo(header *core.Header, tx *core.Transaction) *TransactionI
 		LockTime:       tx.LockTime,
 		Inputs:         inputs,
 		Outputs:        outputs,
-		BlockHash:      blockHash.String(),
-		Confirmations:  confirmations,
-		Time:           time,
-		BlockTime:      blockTime,
+		BlockHash:      header.Hash().String(),
+		Confirmations:  node.Instance.BestHeight() - header.Height + 1,
+		Time:           header.Timestamp,
+		BlockTime:      header.Timestamp,
 		TxType:         tx.TxType,
 		PayloadVersion: tx.PayloadVersion,
 		Payload:        nil,
 		Attributes:     attributes,
 		Programs:       programs,
 	}
+}
+
+func elaTxToBtcTx(elaTx *core.Transaction) *auxpow.BtcTx {
+	btcTx := new(auxpow.BtcTx)
+	inputs := make([]*auxpow.BtcTxIn, 0, len(elaTx.Inputs))
+	for _, txIn := range elaTx.Inputs {
+		var input auxpow.BtcTxIn
+		input.PreviousOutPoint.Hash = txIn.Previous.TxID
+		input.PreviousOutPoint.Index = uint32(txIn.Previous.Index)
+		input.Sequence = txIn.Sequence
+		inputs = append(inputs, &input)
+	}
+	btcTx.TxIn = inputs
+
+	outputs := make([]*auxpow.BtcTxOut, 0, len(elaTx.Outputs))
+	for _, txOut := range elaTx.Outputs {
+		var output auxpow.BtcTxOut
+		output.PkScript = txOut.ProgramHash.Bytes()
+		output.Value = txOut.Value.IntValue()
+		outputs = append(outputs, &output)
+	}
+	btcTx.TxOut = outputs
+	btcTx.LockTime = elaTx.LockTime
+
+	return btcTx
 }
 
 func btcTxToElaTx(btcTx *auxpow.BtcTx) (*core.Transaction, error) {

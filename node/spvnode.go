@@ -3,6 +3,7 @@ package node
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"errors"
 
 	"github.com/elastos/Elastos.ELA.SPV/log"
 	"github.com/elastos/Elastos.ELA.SPV/sdk"
@@ -73,11 +74,12 @@ func (n *SPVNode) OnRollback(height uint32) error {
 }
 
 func (n *SPVNode) Start() {
-	if len(n.DataStore.GetAddrs()) == 0 {
-		log.Debug("Addresses not registered, wait for register.")
-		n.waitChan = make(chan byte)
-		<-n.waitChan
-	}
+	log.Debug("Wait for register addresses...")
+	n.waitChan = make(chan byte)
+	<-n.waitChan
+	close(n.waitChan)
+	n.waitChan = nil
+
 	n.SPVService.Start()
 }
 
@@ -92,17 +94,25 @@ func (n *SPVNode) Stop() {
 // Interface implements
 func (n *SPVNode) RegisterAddresses(addresses []string) error {
 	for _, address := range addresses {
-		if err := n.DataStore.PutAddr(address); err != nil {
+		if _, err := n.DataStore.PutAddr(address); err != nil {
 			return err
 		}
+	}
+	if n.waitChan == nil {
+		return errors.New("RegisterAddresses can only call once on SPV node start," +
+			" please use RegisterAddress to register new addresses")
 	}
 	n.waitChan <- 1
 	return nil
 }
 
 func (n *SPVNode) RegisterAddress(address string) error {
-	if err := n.DataStore.PutAddr(address); err != nil {
+	ok, err := n.DataStore.PutAddr(address)
+	if err != nil {
 		return err
+	}
+	if !ok {
+		return errors.New("address has already registered")
 	}
 	n.SPVService.ReloadFilter()
 	return nil

@@ -16,7 +16,7 @@ var methods MethodMap
 func initMethods() {
 	methods = make(MethodMap)
 	methods["registeraddresses"] = RegisterAddresses
-	methods["registernewaddress"] = RegisterAddress
+	methods["registeraddress"] = RegisterAddress
 	methods["getblockcount"] = GetBlockCount
 	methods["getbestblockhash"] = GetBestBlockHash
 	methods["getblockhash"] = GetBlockHash
@@ -112,6 +112,8 @@ func (r *Response) WriteError(w http.ResponseWriter, httpStatus, code int, messa
 }
 
 func (r *Response) Write(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Add("Content-Type", "charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	data, _ := json.Marshal(r)
 	w.Write(data)
@@ -121,7 +123,7 @@ func formatParams(method string, params []interface{}) Params {
 	switch method {
 	case "registeraddresses":
 		return FromArray(params, "addresses")
-	case "registernewaddress":
+	case "registeraddress":
 		return FromArray(params, "address")
 	case "getblockhash":
 		return FromArray(params, "index")
@@ -130,8 +132,8 @@ func formatParams(method string, params []interface{}) Params {
 	case "getblockbyheight":
 		return FromArray(params, "height", "format")
 	case "getrawtransaction":
-		return FromArray(params, "hash", "decoded")
-	case "sendrawtrasaction":
+		return FromArray(params, "hash", "format")
+	case "sendrawtransaction":
 		return FromArray(params, "data", "format")
 	default:
 		return Params{}

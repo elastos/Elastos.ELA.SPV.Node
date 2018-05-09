@@ -63,18 +63,21 @@ func NewDataStore() (*DataStore, error) {
 	return store, nil
 }
 
-func (t *DataStore) PutAddr(address string) error {
+func (t *DataStore) PutAddr(address string) (bool, error) {
 	t.Lock()
 	defer t.Unlock()
 
 	hash, err := common.Uint168FromAddress(address)
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	if t.filter.ContainAddr(*hash) {
+		return false, nil
 	}
 
 	t.filter.AddAddr(hash)
-
-	return t.Update(func(tx *bolt.Tx) error {
+	return true, t.Update(func(tx *bolt.Tx) error {
 		return tx.Bucket(BKTAddrs).Put([]byte(address), hash.Bytes())
 	})
 }
@@ -139,9 +142,7 @@ func (t *DataStore) PutTx(txn *StoreTx) (match bool, err error) {
 			data := tx.Bucket(BKTHeightTxs).Get(key[:])
 
 			var txMap = make(map[common.Uint256]uint32)
-			if err = gob.NewDecoder(bytes.NewReader(data)).Decode(&txMap); err != nil {
-				return err
-			}
+			gob.NewDecoder(bytes.NewReader(data)).Decode(&txMap)
 
 			txMap[txn.Hash()] = txn.Height
 
@@ -150,10 +151,10 @@ func (t *DataStore) PutTx(txn *StoreTx) (match bool, err error) {
 				return err
 			}
 
-			return tx.Bucket(BKTHeightTxs).Put(key[:], buf.Bytes())
+			err = tx.Bucket(BKTHeightTxs).Put(key[:], buf.Bytes())
 		}
 
-		return nil
+		return err
 	})
 
 	return match, err
@@ -189,7 +190,9 @@ func (t *DataStore) GetTxIds(height uint32) (txIds []*common.Uint256, err error)
 
 		txIds = make([]*common.Uint256, 0, len(txMap))
 		for hash := range txMap {
-			txIds = append(txIds, &hash)
+			var txId common.Uint256
+			copy(txId[:], hash[:])
+			txIds = append(txIds, &txId)
 		}
 		return nil
 	})

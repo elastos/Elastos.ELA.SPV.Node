@@ -175,6 +175,10 @@ func (h *HeaderStore) GetHeaderHash(height uint32) (hash *common.Uint256, err er
 		return err
 	})
 
+	if err != nil {
+		return hash, fmt.Errorf("header hash not exist on height %d", height)
+	}
+
 	return hash, err
 }
 
@@ -201,7 +205,7 @@ func (h *HeaderStore) Close() {
 func getHeader(tx *bolt.Tx, bucket []byte, key []byte) (*store.StoreHeader, error) {
 	headerBytes := tx.Bucket(bucket).Get(key)
 	if headerBytes == nil {
-		return nil, errors.New(fmt.Sprintf("Header %s does not exist in database", hex.EncodeToString(key)))
+		return nil, fmt.Errorf("header %s does not exist in database", hex.EncodeToString(key))
 	}
 
 	var header store.StoreHeader

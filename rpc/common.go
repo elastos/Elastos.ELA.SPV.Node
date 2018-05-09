@@ -45,7 +45,7 @@ type TransactionInfo struct {
 	PayloadVersion byte            `json:"payloadversion,omitempty"`
 	Payload        interface{}     `json:"payload,omitempty"`
 	Attributes     []AttributeInfo `json:"attributes"`
-	Programs       []ProgramInfo   `json:"programs"`
+	Programs       []ProgramInfo   `json:"programs,omitempty"`
 }
 
 type BlockInfo struct {
