@@ -90,8 +90,6 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Debug("RPC params:", params)
-
 	result, err := method(params)
 	if err != nil {
 		response.WriteError(w, http.StatusInternalServerError, InternalError, "internal error: "+err.Error())

@@ -5,10 +5,11 @@ import (
 	"encoding/binary"
 	"errors"
 
+	"github.com/elastos/Elastos.ELA.SPV.Node/config"
 	"github.com/elastos/Elastos.ELA.SPV/log"
 	"github.com/elastos/Elastos.ELA.SPV/sdk"
 	"github.com/elastos/Elastos.ELA.Utility/common"
-	"github.com/elastos/Elastos.ELA/bloom"
+	"github.com/elastos/Elastos.ELA.Utility/p2p/msg"
 	"github.com/elastos/Elastos.ELA/core"
 )
 
@@ -38,7 +39,7 @@ func Init(seeds []string) error {
 
 	var clientId [8]byte
 	rand.Read(clientId[:])
-	spvClient, err := sdk.GetSPVClient(sdk.TypeMainNet, binary.LittleEndian.Uint64(clientId[:]), seeds)
+	spvClient, err := sdk.GetSPVClient(config.Values().Magic, binary.LittleEndian.Uint64(clientId[:]), seeds)
 	if err != nil {
 		return err
 	}
@@ -62,12 +63,13 @@ func (n *SPVNode) GetData() ([]*common.Uint168, []*core.OutPoint) {
 	return n.DataStore.GetAddrs(), ops
 }
 
-func (n *SPVNode) OnCommitTx(tx core.Transaction, height uint32) (bool, error) {
-	return n.DataStore.PutTx(NewStoreTx(&tx, height))
+func (n *SPVNode) OnStateChange(sdk.ChainState) {}
+
+func (n *SPVNode) CommitTx(tx *core.Transaction, height uint32) (bool, error) {
+	return n.DataStore.PutTx(NewStoreTx(tx, height))
 }
 
-func (n *SPVNode) OnBlockCommitted(bloom.MerkleBlock, []core.Transaction) {
-}
+func (n *SPVNode) OnBlockCommitted(*msg.MerkleBlock, []*core.Transaction) {}
 
 func (n *SPVNode) OnRollback(height uint32) error {
 	return n.DataStore.Rollback(height)

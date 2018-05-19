@@ -208,16 +208,16 @@ func SendRawTransaction(params Params) (Result, error) {
 			return nil, fmt.Errorf(
 				"[SendRawTransaction] convert btc transaction to ela transaction failed %s", err.Error())
 		}
-		node.Instance.SendTransaction(*tx)
-		return tx.Hash().String(), nil
+		txId, err := node.Instance.SendTransaction(*tx)
+		return txId.String(), err
 	case "ela":
 		var tx core.Transaction
 		err = tx.Deserialize(bytes.NewReader(txBytes))
 		if err != nil {
 			return nil, fmt.Errorf("[SendRawTransaction] transaction deserialize failed %s", err.Error())
 		}
-		node.Instance.SendTransaction(tx)
-		return tx.Hash().String(), nil
+		txId, err := node.Instance.SendTransaction(tx)
+		return txId.String(), err
 	}
 	return nil, fmt.Errorf("[SendRawTransaction] unknown transaction format %s", format)
 }
