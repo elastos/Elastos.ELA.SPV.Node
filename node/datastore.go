@@ -104,60 +104,60 @@ func (t *DataStore) getAddrs() (addrs []*common.Uint168, err error) {
 	return addrs, err
 }
 
-func (t *DataStore) PutTx(txn *StoreTx) (match bool, err error) {
+func (t *DataStore) PutTx(txn *StoreTx) (fPositive bool, err error) {
 	t.Lock()
 	defer t.Unlock()
 
+	hits := 0
 	err = t.Update(func(tx *bolt.Tx) error {
-
 		for index, output := range txn.Outputs {
 			if t.filter.ContainAddr(output.ProgramHash) {
-				match = true
 				op := core.NewOutPoint(txn.Hash(), uint16(index)).Bytes()
 				if err := tx.Bucket(BKTOps).Put(op, op); err != nil {
 					return err
 				}
+				hits++
 			}
 		}
 
 		for _, input := range txn.Inputs {
 			outpoint := tx.Bucket(BKTOps).Get(input.Previous.Bytes())
 			if outpoint != nil {
-				match = true
+				hits++
 			}
 		}
 
-		if match {
-			buf := new(bytes.Buffer)
-			if err = txn.Serialize(buf); err != nil {
-				return err
-			}
-
-			if err = tx.Bucket(BKTTxs).Put(txn.Hash().Bytes(), buf.Bytes()); err != nil {
-				return err
-			}
-
-			var key [4]byte
-			binary.LittleEndian.PutUint32(key[:], txn.Height)
-			data := tx.Bucket(BKTHeightTxs).Get(key[:])
-
-			var txMap = make(map[common.Uint256]uint32)
-			gob.NewDecoder(bytes.NewReader(data)).Decode(&txMap)
-
-			txMap[txn.Hash()] = txn.Height
-
-			buf = new(bytes.Buffer)
-			if err = gob.NewEncoder(buf).Encode(txMap); err != nil {
-				return err
-			}
-
-			err = tx.Bucket(BKTHeightTxs).Put(key[:], buf.Bytes())
+		if hits == 0 {
+			return nil
 		}
 
-		return err
+		buf := new(bytes.Buffer)
+		if err = txn.Serialize(buf); err != nil {
+			return err
+		}
+
+		if err = tx.Bucket(BKTTxs).Put(txn.Hash().Bytes(), buf.Bytes()); err != nil {
+			return err
+		}
+
+		var key [4]byte
+		binary.LittleEndian.PutUint32(key[:], txn.Height)
+		data := tx.Bucket(BKTHeightTxs).Get(key[:])
+
+		var txMap = make(map[common.Uint256]uint32)
+		gob.NewDecoder(bytes.NewReader(data)).Decode(&txMap)
+
+		txMap[txn.Hash()] = txn.Height
+
+		buf = new(bytes.Buffer)
+		if err = gob.NewEncoder(buf).Encode(txMap); err != nil {
+			return err
+		}
+
+		return tx.Bucket(BKTHeightTxs).Put(key[:], buf.Bytes())
 	})
 
-	return match, err
+	return hits == 0, err
 }
 
 func (t *DataStore) GetTx(hash *common.Uint256) (txn *StoreTx, err error) {
