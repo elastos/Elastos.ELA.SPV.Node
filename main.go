@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	log.Init()
+	log.Init(config.Values().PrintLevel)
 
 	err := node.Init(config.Values().SeedList)
 	if err != nil {
