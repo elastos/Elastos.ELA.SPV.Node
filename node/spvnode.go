@@ -8,13 +8,14 @@ import (
 	"github.com/elastos/Elastos.ELA.SPV.Node/config"
 	"github.com/elastos/Elastos.ELA.SPV/log"
 	"github.com/elastos/Elastos.ELA.SPV/sdk"
+
 	"github.com/elastos/Elastos.ELA.Utility/common"
 	"github.com/elastos/Elastos.ELA.Utility/p2p/msg"
 	"github.com/elastos/Elastos.ELA/core"
 )
 
-// single instance of the SPV node
-var Instance *SPVNode
+const MaxConnections = 10
+
 var AssetEla = getElaId()
 
 type SPVNode struct {
@@ -24,34 +25,38 @@ type SPVNode struct {
 	waitChan chan byte
 }
 
-func Init(seeds []string) error {
+func NewSpvNode(seeds []string) (*SPVNode, error) {
 	var err error
 	node := new(SPVNode)
 	node.HeaderStore, err = NewHeaderStore()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	node.DataStore, err = NewDataStore()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var clientId [8]byte
 	rand.Read(clientId[:])
-	spvClient, err := sdk.GetSPVClient(config.Values().Magic, binary.LittleEndian.Uint64(clientId[:]), seeds)
+	spvClient, err := sdk.GetSPVClient(
+		config.Values().Magic,
+		binary.LittleEndian.Uint64(clientId[:]),
+		seeds,
+		MaxConnections,
+		MaxConnections,
+	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	node.SPVService, err = sdk.GetSPVService(spvClient, node.HeaderStore, node)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	Instance = node
-
-	return nil
+	return node, err
 }
 
 func (n *SPVNode) GetData() ([]*common.Uint168, []*core.OutPoint) {

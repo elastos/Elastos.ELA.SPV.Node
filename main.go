@@ -14,7 +14,7 @@ import (
 func main() {
 	log.Init(config.Values().PrintLevel)
 
-	err := node.Init(config.Values().SeedList)
+	spvNode, err := node.NewSpvNode(config.Values().SeedList)
 	if err != nil {
 		log.Error("SPV node initialize failed, ", err)
 		os.Exit(1)
@@ -27,13 +27,13 @@ func main() {
 	go func() {
 		for range c {
 			log.Trace("SPV node shutting down...")
-			node.Instance.Stop()
+			spvNode.Stop()
 			stop <- 1
 		}
 	}()
 
-	go rpc.StartServer()
-	node.Instance.Start()
+	go rpc.StartServer(spvNode)
+	spvNode.Start()
 
 	<-stop
 }

@@ -29,7 +29,7 @@ func RegisterAddresses(params Params) (Result, error) {
 		}
 	}
 
-	err := node.Instance.RegisterAddresses(addrs)
+	err := Node.RegisterAddresses(addrs)
 	if err != nil {
 		return nil, fmt.Errorf("[RegisterAddresses] register addresses failed %s", err.Error())
 	}
@@ -42,7 +42,7 @@ func RegisterAddress(params Params) (Result, error) {
 		return nil, fmt.Errorf("[RegisterAddress] parameter address not exist")
 	}
 
-	err := node.Instance.RegisterAddress(address)
+	err := Node.RegisterAddress(address)
 	if err != nil {
 		return nil, fmt.Errorf("[RegisterAddress] register address %s error %s", address, err.Error())
 	}
@@ -50,7 +50,7 @@ func RegisterAddress(params Params) (Result, error) {
 }
 
 func GetBlockCount(params Params) (Result, error) {
-	tip, err := node.Instance.GetBestHeader()
+	tip, err := Node.GetBestHeader()
 	if err != nil {
 		return 0, err
 	}
@@ -58,7 +58,7 @@ func GetBlockCount(params Params) (Result, error) {
 }
 
 func GetBestBlockHash(params Params) (Result, error) {
-	tip, err := node.Instance.GetBestHeader()
+	tip, err := Node.GetBestHeader()
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func GetBlockHash(params Params) (Result, error) {
 	if !ok {
 		return nil, fmt.Errorf("[GetBlockHash] parameter index not exist")
 	}
-	hash, err := node.Instance.GetHeaderHash(height)
+	hash, err := Node.GetHeaderHash(height)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func GetBlockByHeight(params Params) (Result, error) {
 	if !ok {
 		return nil, fmt.Errorf("[GetBlockByHeight] parameter height not exist")
 	}
-	hash, err := node.Instance.GetHeaderHash(height)
+	hash, err := Node.GetHeaderHash(height)
 	if err != nil {
 		return nil, fmt.Errorf("[GetBlockByHeight] query block at height %d failed %s", height, err.Error())
 	}
@@ -132,17 +132,17 @@ func GetRawTransaction(params Params) (Result, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[GetRawTransaction] parse hash bytes failed %s", err.Error())
 	}
-	tx, err := node.Instance.GetTx(hash)
+	tx, err := Node.GetTx(hash)
 	if err != nil {
 		return nil, fmt.Errorf("[GetRawTransaction] query transaction %s failed %s",
 			hash.String(), err.Error())
 	}
-	headerHash, err := node.Instance.GetHeaderHash(tx.Height)
+	headerHash, err := Node.GetHeaderHash(tx.Height)
 	if err != nil {
 		return nil, fmt.Errorf("[GetRawTransaction] query header on height %d failed %s",
 			tx.Height, err.Error())
 	}
-	header, err := node.Instance.GetHeader(headerHash)
+	header, err := Node.GetHeader(headerHash)
 	if err != nil {
 		return nil, fmt.Errorf("[GetRawTransaction] query header %s failed %s",
 			headerHash.String(), err.Error())
@@ -208,7 +208,7 @@ func SendRawTransaction(params Params) (Result, error) {
 			return nil, fmt.Errorf(
 				"[SendRawTransaction] convert btc transaction to ela transaction failed %s", err.Error())
 		}
-		txId, err := node.Instance.SendTransaction(*tx)
+		txId, err := Node.SendTransaction(*tx)
 		return txId.String(), err
 	case "ela":
 		var tx core.Transaction
@@ -216,14 +216,14 @@ func SendRawTransaction(params Params) (Result, error) {
 		if err != nil {
 			return nil, fmt.Errorf("[SendRawTransaction] transaction deserialize failed %s", err.Error())
 		}
-		txId, err := node.Instance.SendTransaction(tx)
+		txId, err := Node.SendTransaction(tx)
 		return txId.String(), err
 	}
 	return nil, fmt.Errorf("[SendRawTransaction] unknown transaction format %s", format)
 }
 
 func getBlock(hash *common.Uint256, format uint32) (Result, error) {
-	storeHeader, err := node.Instance.GetHeader(hash)
+	storeHeader, err := Node.GetHeader(hash)
 	if err != nil {
 		return nil, fmt.Errorf("[GetBlock] unknown block with hash %s", hash.String())
 	}
@@ -239,14 +239,14 @@ func getBlock(hash *common.Uint256, format uint32) (Result, error) {
 func getBlockInfo(header core.Header, verbose bool) (*BlockInfo, error) {
 	hash := header.Hash()
 
-	txIds, err := node.Instance.GetTxIds(header.Height)
+	txIds, err := Node.GetTxIds(header.Height)
 	if err != nil {
 		return nil, fmt.Errorf("[GetBlockInfo] query block transactions failed %s", err.Error())
 	}
 	var txs []interface{}
 	if verbose {
 		for _, txId := range txIds {
-			tx, err := node.Instance.GetTx(txId)
+			tx, err := Node.GetTx(txId)
 			if err != nil {
 				return nil, fmt.Errorf("[GetBlockInfo] query transaction %s failed %s",
 					txId.String(), err.Error())
@@ -262,9 +262,9 @@ func getBlockInfo(header core.Header, verbose bool) (*BlockInfo, error) {
 	binary.BigEndian.PutUint32(versionBytes[:], header.Version)
 
 	var chainWork [4]byte
-	binary.BigEndian.PutUint32(chainWork[:], node.Instance.BestHeight()-header.Height)
+	binary.BigEndian.PutUint32(chainWork[:], Node.BestHeight()-header.Height)
 
-	nextBlockHash, err := node.Instance.GetHeaderHash(header.Height + 1)
+	nextBlockHash, err := Node.GetHeaderHash(header.Height + 1)
 	if err != nil {
 		nextBlockHash = new(common.Uint256)
 	}
@@ -274,7 +274,7 @@ func getBlockInfo(header core.Header, verbose bool) (*BlockInfo, error) {
 
 	return &BlockInfo{
 		Hash:              hash.String(),
-		Confirmations:     node.Instance.BestHeight() - header.Height + 1,
+		Confirmations:     Node.BestHeight() - header.Height + 1,
 		StrippedSize:      0,
 		Size:              0,
 		Weight:            0,
@@ -339,7 +339,7 @@ func getTransactionInfo(header *core.Header, tx *core.Transaction) *TransactionI
 		Inputs:         inputs,
 		Outputs:        outputs,
 		BlockHash:      header.Hash().String(),
-		Confirmations:  node.Instance.BestHeight() - header.Height + 1,
+		Confirmations:  Node.BestHeight() - header.Height + 1,
 		Time:           header.Timestamp,
 		BlockTime:      header.Timestamp,
 		TxType:         tx.TxType,

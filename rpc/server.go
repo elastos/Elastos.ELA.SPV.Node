@@ -7,10 +7,12 @@ import (
 	"strconv"
 
 	"github.com/elastos/Elastos.ELA.SPV.Node/config"
+	"github.com/elastos/Elastos.ELA.SPV.Node/node"
 
 	"github.com/elastos/Elastos.ELA.SPV/log"
 )
 
+var Node *node.SPVNode
 var methods MethodMap
 
 func initMethods() {
@@ -26,8 +28,9 @@ func initMethods() {
 	methods["sendrawtransaction"] = SendRawTransaction
 }
 
-func StartServer() {
+func StartServer(spvNode *node.SPVNode) {
 	log.Debug("Start RPC server at port:", config.Values().RPCPort)
+	Node = spvNode
 	initMethods()
 	http.HandleFunc("/", Handle)
 	err := http.ListenAndServe(":"+strconv.Itoa(config.Values().RPCPort), nil)
