@@ -43,7 +43,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	//JSON RPC commands should be POSTs
 	if r.Method != "POST" {
 		log.Warn("HTTP JSON RPC Handle - Method!=\"POST\"")
-		http.Error(w, "JSON RPC procotol only allows POST method", http.StatusMethodNotAllowed)
+		http.Error(w, "JSON RPC protocol only allows POST method", http.StatusMethodNotAllowed)
 		return
 	}
 
